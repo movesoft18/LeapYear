@@ -7,14 +7,13 @@ on:
     branches: [ main, master, develop ]
 
 env:
-  # Конфигурация сборки (измените при необходимости)
-  BUILD_CONFIGURATION: Debug
+  BUILD_CONFIGURATION: Release
   BUILD_PLATFORM: x64
   SOLUTION_FILE: LeapYear.sln  # Укажите имя вашего .sln файла
- 
+
 jobs:
   build-and-test:
-    runs-on: windows-latest  # Используем Windows для MSBuild
+    runs-on: windows-latest
 
     steps:
     # Шаг 1: Загрузка кода репозитория
@@ -27,7 +26,7 @@ jobs:
       
     # Шаг 3: Поиск пути к MSBuild (Visual Studio 2022)
     - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1.1
+      uses: microsoft/setup-msbuild@v2
       with:
         vs-version: '17.0'  # Visual Studio 2022
 
@@ -40,7 +39,7 @@ jobs:
           /m `
           /verbosity:minimal
 
-    # Шаг 5: Запуск тестов через Google Test
+    # Шаг 5: Запуск Google Tests
     - name: Run Google Tests
       run: |
         # Находим исполняемый файл тестов (адаптируйте путь под вашу структуру)
@@ -53,17 +52,35 @@ jobs:
             & $TestExecutable.FullName --gtest_output=xml:test_results.xml
         } else {
             Write-Error "Test executable not found!"
-            exit 1
+            # Попробуем альтернативный путь
+            $AlternativePath = ".\*Tests\bin\${{ env.BUILD_PLATFORM }}\${{ env.BUILD_CONFIGURATION }}\*Tests.exe"
+            $AltTestExecutable = Get-ChildItem -Path $AlternativePath -ErrorAction SilentlyContinue
+            if ($AltTestExecutable) {
+                Write-Host "Found test executable at: $($AltTestExecutable.FullName)"
+                & $AltTestExecutable.FullName --gtest_output=xml:test_results.xml
+            } else {
+                exit 1
+            }
         }
 
-    # Шаг 6: Публикация результатов тестов (опционально)
-    - name: Publish Test Results
-      uses: actions/upload-artifact@v3
-      if: always()  # Загружаем артефакты даже если тесты упали
+    # Шаг 6: Публикация результатов тестов (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
       with:
-        name: test-results
+        name: test-results-${{ github.run_id }}
         path: |
           test_results.xml
-          **/*.exe
-          **/*.pdb
+          **/*.trx
+        retention-days: 7
+
+    # Дополнительно: Публикация артефактов сборки
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts-${{ github.run_id }}
+        path: |
+          **/bin/${{ env.BUILD_PLATFORM }}/${{ env.BUILD_CONFIGURATION }}/*.exe
+          **/bin/${{ env.BUILD_PLATFORM }}/${{ env.BUILD_CONFIGURATION }}/*.dll
+          **/bin/${{ env.BUILD_PLATFORM }}/${{ env.BUILD_CONFIGURATION }}/*.pdb
         retention-days: 7
