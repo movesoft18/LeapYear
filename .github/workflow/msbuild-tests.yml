@@ -1,0 +1,69 @@
+name: MSBuild C++ CI - Build and Test
+
+on:
+  push:
+    branches: [ main, master, develop, 'feature/*', 'fix/*' ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+env:
+  # Конфигурация сборки (измените при необходимости)
+  BUILD_CONFIGURATION: Debug
+  BUILD_PLATFORM: x64
+  SOLUTION_FILE: LeapYear.sln  # Укажите имя вашего .sln файла
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest  # Используем Windows для MSBuild
+
+    steps:
+    # Шаг 1: Загрузка кода репозитория
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    # Шаг 2: Восстановление NuGet пакетов (если используете)
+    - name: Restore NuGet packages
+      run: nuget restore ${{ env.SOLUTION_FILE }}
+      
+    # Шаг 3: Поиск пути к MSBuild (Visual Studio 2022)
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
+      with:
+        vs-version: '17.0'  # Visual Studio 2022
+
+    # Шаг 4: Сборка основного проекта
+    - name: Build Solution
+      run: |
+        msbuild ${{ env.SOLUTION_FILE }} `
+          /p:Configuration=${{ env.BUILD_CONFIGURATION }} `
+          /p:Platform=${{ env.BUILD_PLATFORM }} `
+          /m `
+          /verbosity:minimal
+
+    # Шаг 5: Запуск тестов через Google Test
+    - name: Run Google Tests
+      run: |
+        # Находим исполняемый файл тестов (адаптируйте путь под вашу структуру)
+        $TestExecutable = Get-ChildItem -Path "." -Recurse -Filter "*Tests*.exe" | 
+                          Where-Object { $_.FullName -like "*${{ env.BUILD_CONFIGURATION }}*" -and $_.FullName -like "*${{ env.BUILD_PLATFORM }}*" } |
+                          Select-Object -First 1
+        
+        if ($TestExecutable) {
+            Write-Host "Running tests from: $($TestExecutable.FullName)"
+            & $TestExecutable.FullName --gtest_output=xml:test_results.xml
+        } else {
+            Write-Error "Test executable not found!"
+            exit 1
+        }
+
+    # Шаг 6: Публикация результатов тестов (опционально)
+    - name: Publish Test Results
+      uses: actions/upload-artifact@v3
+      if: always()  # Загружаем артефакты даже если тесты упали
+      with:
+        name: test-results
+        path: |
+          test_results.xml
+          **/*.exe
+          **/*.pdb
+        retention-days: 7
