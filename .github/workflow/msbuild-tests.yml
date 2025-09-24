@@ -11,7 +11,7 @@ env:
   BUILD_CONFIGURATION: Debug
   BUILD_PLATFORM: x64
   SOLUTION_FILE: LeapYear.sln  # Укажите имя вашего .sln файла
-
+ 
 jobs:
   build-and-test:
     runs-on: windows-latest  # Используем Windows для MSBuild
