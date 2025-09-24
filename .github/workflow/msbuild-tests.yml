@@ -1,4 +1,4 @@
-name: MSBuild C++ CI - Build and Test
+п»їname: MSBuild C++ CI - Build and Test
 
 on:
   push:
@@ -7,31 +7,31 @@ on:
     branches: [ main, master, develop ]
 
 env:
-  # Конфигурация сборки (измените при необходимости)
+  # РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ СЃР±РѕСЂРєРё (РёР·РјРµРЅРёС‚Рµ РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё)
   BUILD_CONFIGURATION: Debug
   BUILD_PLATFORM: x64
-  SOLUTION_FILE: LeapYear.sln  # Укажите имя вашего .sln файла
+  SOLUTION_FILE: LeapYear.sln  # РЈРєР°Р¶РёС‚Рµ РёРјСЏ РІР°С€РµРіРѕ .sln С„Р°Р№Р»Р°
  
 jobs:
   build-and-test:
-    runs-on: windows-latest  # Используем Windows для MSBuild
+    runs-on: windows-latest  # РСЃРїРѕР»СЊР·СѓРµРј Windows РґР»СЏ MSBuild
 
     steps:
-    # Шаг 1: Загрузка кода репозитория
+    # РЁР°Рі 1: Р—Р°РіСЂСѓР·РєР° РєРѕРґР° СЂРµРїРѕР·РёС‚РѕСЂРёСЏ
     - name: Checkout code
       uses: actions/checkout@v4
       
-    # Шаг 2: Восстановление NuGet пакетов (если используете)
+    # РЁР°Рі 2: Р’РѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ NuGet РїР°РєРµС‚РѕРІ (РµСЃР»Рё РёСЃРїРѕР»СЊР·СѓРµС‚Рµ)
     - name: Restore NuGet packages
       run: nuget restore ${{ env.SOLUTION_FILE }}
       
-    # Шаг 3: Поиск пути к MSBuild (Visual Studio 2022)
+    # РЁР°Рі 3: РџРѕРёСЃРє РїСѓС‚Рё Рє MSBuild (Visual Studio 2022)
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1.1
       with:
         vs-version: '17.0'  # Visual Studio 2022
 
-    # Шаг 4: Сборка основного проекта
+    # РЁР°Рі 4: РЎР±РѕСЂРєР° РѕСЃРЅРѕРІРЅРѕРіРѕ РїСЂРѕРµРєС‚Р°
     - name: Build Solution
       run: |
         msbuild ${{ env.SOLUTION_FILE }} `
@@ -40,10 +40,10 @@ jobs:
           /m `
           /verbosity:minimal
 
-    # Шаг 5: Запуск тестов через Google Test
+    # РЁР°Рі 5: Р—Р°РїСѓСЃРє С‚РµСЃС‚РѕРІ С‡РµСЂРµР· Google Test
     - name: Run Google Tests
       run: |
-        # Находим исполняемый файл тестов (адаптируйте путь под вашу структуру)
+        # РќР°С…РѕРґРёРј РёСЃРїРѕР»РЅСЏРµРјС‹Р№ С„Р°Р№Р» С‚РµСЃС‚РѕРІ (Р°РґР°РїС‚РёСЂСѓР№С‚Рµ РїСѓС‚СЊ РїРѕРґ РІР°С€Сѓ СЃС‚СЂСѓРєС‚СѓСЂСѓ)
         $TestExecutable = Get-ChildItem -Path "." -Recurse -Filter "*Tests*.exe" | 
                           Where-Object { $_.FullName -like "*${{ env.BUILD_CONFIGURATION }}*" -and $_.FullName -like "*${{ env.BUILD_PLATFORM }}*" } |
                           Select-Object -First 1
@@ -56,10 +56,10 @@ jobs:
             exit 1
         }
 
-    # Шаг 6: Публикация результатов тестов (опционально)
+    # РЁР°Рі 6: РџСѓР±Р»РёРєР°С†РёСЏ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ С‚РµСЃС‚РѕРІ (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)
     - name: Publish Test Results
       uses: actions/upload-artifact@v3
-      if: always()  # Загружаем артефакты даже если тесты упали
+      if: always()  # Р—Р°РіСЂСѓР¶Р°РµРј Р°СЂС‚РµС„Р°РєС‚С‹ РґР°Р¶Рµ РµСЃР»Рё С‚РµСЃС‚С‹ СѓРїР°Р»Рё
       with:
         name: test-results
         path: |
